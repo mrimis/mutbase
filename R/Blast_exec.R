@@ -55,5 +55,4 @@ res <- lapply(mySeq, function(x){
                          attempts = 20)
   return(blastRes)
 })
-
 res
