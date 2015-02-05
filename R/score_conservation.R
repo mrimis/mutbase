@@ -21,6 +21,14 @@
 ################################################################################################################
 
 
+# Based on:
+# Capra JA and Singh M. Predicting functionally important residues from sequence conservation.
+# Bioinformatics, 23(15):1875-82, 2007.
+#
+# Scoring protein sequence conservation using the Jensen-Shannon divergence.
+#
+
+
 library(hash)
 PSEUDOCOUNT = .0000001
 amino_acids = c('A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', '-')
@@ -126,7 +134,7 @@ property_entropy <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty
     """Calculate the entropy of a column col relative to a partition of the amino acids. Similar to Mirny '99. sim_matrix and bg_distr are ignored, but could be used to define the sets."""
     
     # Mirny and Shakn. '99
-     property_partition = c(c('A','V','L','I','M','C'), c('F','W','Y','H'), c('S','T','N','Q'), c('K','R'), c('D', 'E'), c('G', 'P'), c('-'))
+     property_partition = list(list('A','V','L','I','M','C'), list('F','W','Y','H'), list('S','T','N','Q'), list('K','R'), list('D', 'E'), list('G', 'P'), list('-'))
      
      # Williamson '95
     
@@ -174,7 +182,7 @@ property_relative_entropy <- function(col, sim_matrix, bg_distr, seq_weights, ga
     #property_partition = [['A','V','L','I','M','C'], ['F','W','Y','H'], ['S','T','N','Q'], ['K','R'], ['D', 'E'], ['G', 'P'], ['-']]
     
     # Williamson '95
-    property_partition = c(c('V','L', 'I','M'), c('F','W','Y'), c('S','T'), c('N','Q'), c('H','K','R'), c('D','E'), c('A','G'), c('P'), c('C'))
+    property_partition = list(list('V','L', 'I','M'), list('F','W','Y'), list('S','T'), list('N','Q'), list('H','K','R'), list('D','E'), list('A','G'), list('P'), list('C'))
     
     prop_bg_freq = c()
     
@@ -602,7 +610,7 @@ load_sequence_weights <- function(fname) {
 }
 
 
-get_column <- (col_num, alignment) {
+get_column <- function(col_num, alignment) {
     """Return the col_num column of alignment as a list."""
     col = c()
     for (seq in alignment) {
@@ -659,9 +667,14 @@ replace_element <- function(stringElement, Obj1, Obj2) {
     
     return(retString)
 }
+
+
+###########################################################################################
+# Read fasta files
+###########################################################################################
+
 read_fasta_alignment=function(filename){
-  """ Read in the alignment stored in the FASTA file, filename. Return two
-    lists: the identifiers and sequences. """
+  """ Read in the alignment stored in the FASTA file, filename. Return two lists: the identifiers and sequences. """
 
   f = readLines(filename,encoding="UTF-8")
 
@@ -699,6 +712,103 @@ read_fasta_alignment=function(filename){
   cur_seq=replace_element(cur_seq,'X','-')
   alignment.append(cur_seq)
   return (c(names, alignment))
+
+
+
+
+
+################################################################################
+# Begin execution
+################################################################################
+
+
+
+execute_conserve <- function(infile_name,
+                             outfile_name,
+                             window_size=3,
+                             win_lam=0.5,
+                             s_matrix_file="matrix/blosum62.bla",
+                             bg_distribution=blosum_background_distr,
+                             scoring_function=js_divergence,
+                             use_seq_weights=True,
+                             background_name='blosum62',
+                             gap_cutoff=0.3,
+                             use_gap_penalty=1,
+                             seq_specific_output=0,
+                             normalize_scores=False
+                             ) {
+    
+    blosum_background_distr = c(0.078, 0.051, 0.041, 0.052, 0.024, 0.034, 0.059, 0.083, 0.025, 0.062, 0.092, 0.056, 0.024, 0.044, 0.043, 0.059, 0.055, 0.014, 0.034, 0.072)
+    
+    align_file = infile_name
+    align_suffix_elements = strsplit(align_file, "\\.")
+    align_suffix = align_suffix_elements[[length(align_suffix_elements)]]
+    s_matrix = read_scoring_matrix(s_matrix_file)
+    names = c()
+    alignment = c()
+    seq_weights = c()
+    ali_out  = read_fasta_alignment(align_file)
+    names = ali_out[1]; alignment = ali_out[2]
+    
+    seq_len = nchar(alignment[[1]])
+    for (i in length(alignment)) {
+        if (nchar(alignment[[i]]) != seq_len) {
+            sprintf("ERROR: Sequences of different lengths: %s (%d) != %s (%d).\n", names[[1]], seq_len, names[[i]], nchar(seq))
+            quit()
+        }
+    }
+    
+    if (use_seq_weights) {
+        seq_weights = load_sequence_weights(.replace(align_file, align_suffix, '.weights'))
+        if (seq_weights == c()) {
+            seq_weights = calculate_sequence_weights(alignment)
+        }
+    }
+    
+    if (length(seq_weights) != length(alignment)) { seq_weights = rep(1, length(alignment)) }
+    
+    # handle print of output relative to specific sequence
+    ref_seq_num = "None"
+    if (seq_specific_output & !(seq_specific_output %in% names)) {
+        sprintf("Sequence %s not found in alignment. Using default output format...\n", seq_specific_output)
+        seq_specific_output = 0
+    }
+    else if (seq_specific_output %in% names) {
+        ref_seq_num = which(seq_specific_output %in% names)
+    }
+    
+    # calculate scores
+    scores = c()
+    for (i in 1:nchar(alignment[[1]])) {
+        col = get_column(i, alignment)
+        if (length(col) == length(alignment)) {
+            if (gap_percentage(col) <= gap_cutoff) {
+                scores = c(scores, append(scoring_function(col, s_matrix, bg_distribution, seq_weights, use_gap_penalty)))
+            }
+            else {
+                scores = c(scores, -1000)
+            }
+        }
+    }
+    
+    if (window_size > 0) {
+        scores = window_score(scores, window_size, win_lam)
+    }
+    
+    if (normalize_scores) {
+        scores = calc_z_scores(scores, -999)
+    }
+    
+    return(scores)
+}
+
+
+
+
+
+
+
+
 
 
 
