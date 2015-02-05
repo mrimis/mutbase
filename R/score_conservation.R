@@ -38,29 +38,29 @@ aa_to_index = hash(keys=amino_acids,values=1:length(amino_acids))
 
 
 
+
 ################################################################################
 # Frequency count
 ################################################################################
 weighted_freq_count_pseudocount=function(col, seq_weights, pc_amount){
-  """ Return the weighted frequency count for a column--with pseudocount."""
-
-# if the weights do not match, use equal weight
-  if (length(seq_weights) != length(col)){
-    seq_weights = rep(as.double(1.0),length(col))}
-
-  aa_num = 1
-  freq_counts = rep(length(amino_acids),pc_amount) # in order defined by amino_acids
-
-  for (aa in amino_acids){
-    for (j in 1:length(col)){
-        if (col[j] == aa){
-          freq_counts[aa_num] += rep(1,seq_weights[j])}
-        aa_num += 1}}
-
-  for (j in 1:length(freq_counts)){
-    freq_counts[j] = freq_counts[j] / (sum(seq_weights) + length(amino_acids) * pc_amount)}
-  return (freq_counts)
-  }
+    #""" Return the weighted frequency count for a column--with pseudocount."""
+        
+        # if the weights do not match, use equal weight
+        if (length(seq_weights) != length(col)){
+seq_weights = rep(as.double(1.0),length(col))}
+    
+    aa_num = 1
+        freq_counts = rep(pc_amount,length(amino_acids)) # in order defined by amino_acids
+            
+            for (aa in amino_acids){
+for (j in 1:length(col)){
+    if (col[[j]] == aa){
+        freq_counts[aa_num] = freq_counts[[aa_num]] + rep(1,seq_weights[[j]])}
+        aa_num = aa_num + 1}}
+            for (j in 1:length(freq_counts)){
+freq_counts[j] = freq_counts[[j]] / (sum(seq_weights) + length(amino_acids) * pc_amount)}
+    return (freq_counts)
+    }
 
 
 ################################################################################
@@ -75,7 +75,7 @@ weighted_gap_penalty=function(col, seq_weights){
   if (length(seq_weights) != length(col)){
      seq_weights = rep(as.double(1.0),length(col))}
 
-  gap_sum = 0
+  gap_sum =0
   for (i in 1:length(col)){
      if (col[i] == '-'){
         gap_sum += seq_weights[i]}}
@@ -83,11 +83,14 @@ weighted_gap_penalty=function(col, seq_weights){
   return (1 - (gap_sum / sum(seq_weights)))
 }
 
-gap_percentage=function(col){
-  """Return the percentage of gaps in col."""
+
+
+gap_percentage <- function(col){
+
    num_gaps = 0
    for (aa in col){
-     if (aa == '-'){ num_gaps += 1}}
+     if (aa == '-'){ num_gaps = num_gaps + 1}
+   }
 
    return (num_gaps / length(col))
 }
@@ -176,7 +179,6 @@ property_entropy <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty
 
 
 property_relative_entropy <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1) {
-    """Calculate the relative entropy of a column col relative to a partition of the amino acids. Similar to Williamson '95. sim_matrix is ignored, but could be used to define the sets. See shannon_entropy() for more general info. """
     
     # Mirny and Shakn. '99
     #property_partition = [['A','V','L','I','M','C'], ['F','W','Y','H'], ['S','T','N','Q'], ['K','R'], ['D', 'E'], ['G', 'P'], ['-']]
@@ -228,7 +230,6 @@ property_relative_entropy <- function(col, sim_matrix, bg_distr, seq_weights, ga
 
 
 vn_entropy <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1) {
-    """ Calculate the von Neuman Entropy as described in Caffrey et al. 04. This code was adapted from the implementation found in the PFAAT project available on SourceForge. bg_distr is ignored."""
     
     aa_counts = rep(0, 20)
     for (aa in col) {
@@ -298,7 +299,7 @@ vn_entropy <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1) {
 ################################################################################
 
 relative_entropy <- function(col, sim_matix, bg_distr, seq_weights, gap_penalty=1) {
-    """Calculate the relative entropy of the column distribution with a background distribution specified in bg_distr. This is similar to the approach proposed in Wang and Samudrala 06. sim_matrix is ignored."""
+    ###Calculate the relative entropy of the column distribution with a background distribution specified in bg_distr. This is similar to the approach proposed in Wang and Samudrala 06. sim_matrix is ignored."""
     
     distr = bg_distr
     fc = weighted_freq_count_pseudocount(col, seq_weights, PSEUDOCOUNT)
@@ -340,7 +341,7 @@ relative_entropy <- function(col, sim_matix, bg_distr, seq_weights, gap_penalty=
 ################################################################################
 
 js_divergence <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1) {
-    """ Return the Jensen-Shannon Divergence for the column with the background distribution bg_distr. sim_matrix is ignored. JSD is the default method."""
+    ###Return the Jensen-Shannon Divergence for the column with the background distribution bg_distr. sim_matrix is ignored. JSD is the default method."""
     
     distr = bg_distr
     
@@ -358,7 +359,7 @@ js_divergence <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1)
     
     fc = new_fc
     
-    if length(fc) != length(distr) { return(-1) }
+    if (length(fc) != length(distr)) { return(-1) }
     
     # make r distriubtion
     r = c()
@@ -372,7 +373,7 @@ js_divergence <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1)
             if (fc[[i]] == 0.0) {
                 d = d + distr[[i]] * log(distr[[i]]/r[[i]], 2)
             }
-            elif (distr[[i]] == 0.0) {
+            else if (distr[[i]] == 0.0) {
                 d = d + fc[[i]] * log(fc[[i]]/r[[i]], 2)
             }
             else {
@@ -391,6 +392,8 @@ js_divergence <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1)
         return(d)
     }
 }
+
+
 
 
 
@@ -434,18 +437,18 @@ sum_of_pairs <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1) 
 ################################################################################
 
 window_score <- function(scores, window_len, lam=.5) {
-    """ This function takes a list of scores and a length and transforms them so that each position is a weighted average of the surrounding positions. Positions with scores less than zero are not changed and are ignored in the calculation. Here window_len is interpreted to mean window_len residues on either side of the current residue. """
+    #""" This function takes a list of scores and a length and transforms them so that each position is a weighted average of the surrounding positions. Positions with scores less than zero are not changed and are ignored in the calculation. Here window_len is interpreted to mean window_len residues on either side of the current residue. """
     
     w_scores = scores
-    for (i in 1:length(window_len, length(scores) - window_len) {
+    for (i in window_len:(length(scores) - window_len)) {
         if (scores[[i]] < 0) {
             next
         }
-    
+        
         sum = 0
         num_terms = 0
-        for (j in 1:(i - window_len, i + window_len + 1)) {
-            if (i != j and scores[[j]] >= 0) {
+        for (j in (i - window_len): (i + window_len + 1)) {
+            if (i != j & scores[[j]] >= 0) {
                 num_terms = num_terms + 1
                 sum = sum + scores[j]
             }
@@ -455,14 +458,14 @@ window_score <- function(scores, window_len, lam=.5) {
             w_scores[i] = (1 - lam) * (sum / num_terms) + lam * scores[[i]]
         }
     }
-        
+    
     return(w_scores)
 }
 
 
 
 calc_z_scores <- function(scores, score_cutoff) {
-    """Calculates the z-scores for a set of scores. Scores below score_cutoff are not included."""
+    #"""Calculates the z-scores for a set of scores. Scores below score_cutoff are not included."""
     
     average = 0
     std_dev = 0
@@ -473,7 +476,7 @@ calc_z_scores <- function(scores, score_cutoff) {
         if (s > score_cutoff) {
             average = average + s
             num_scores = num_scores + 1
-        }
+    }
     }
     
     if (num_scores != 0) {
@@ -483,17 +486,17 @@ calc_z_scores <- function(scores, score_cutoff) {
     for (s in scores) {
         if (s > score_cutoff) {
             std_dev = std_dev + ((s - average)**2) / num_scores
-        }
-    }
+}
+}
     
     std_dev = sqrt(std_dev)
     for (s in scores) {
-        if (s > score_cutoff and std_dev != 0) {
+        if (s > score_cutoff & std_dev != 0) {
             z_scores = c(z_scores, (s-average)/std_dev)
         }
         else {
             z_scores = c(z_scores, -1000.0)
-        }
+    }
     }
     
     return(z_scores)
@@ -510,19 +513,19 @@ calc_z_scores <- function(scores, score_cutoff) {
 
 
 read_scoring_matrix <- function(sm_file) {
-    """ Read in a scoring matrix from a file, e.g., blosum80.bla, and return it as an array. """
+    #""" Read in a scoring matrix from a file, e.g., blosum80.bla, and return it as an array. """
     
     aa_index = 0
     first_line = 1
     row = c()
     list_sm = c()
-    
+
     tryCatch( {
         
         text <- readLines(sm_file,encoding="UTF-8")
-    
-        for (line in matrix_file) {
-            if (line[1] != '#' and first_line) {
+        
+        for (line in text) {
+            if (strsplit(line, "")[[1]][1] != '#' & first_line) {
                 first_line = 0
                 if (length(amino_acids) == 0) {
                     for (c in strsplit(line, " ")) {
@@ -532,15 +535,17 @@ read_scoring_matrix <- function(sm_file) {
                     }
                 }
             }
-            elif (line[1] != '#' and first_line == 0) {
+            else if (strsplit(line, "")[[1]][1] != '#' & first_line == 0) {
                 if (nchar(line) > 1) {
                     row = strsplit(line, " ")
                     list_sm = c(list_sm, row)
                 }
             }
-        }, error = function(err) {
+        } 
+        error = function(err) {
             return(identity(20))
-        }, finally = {
+        } 
+        finally = {
             sprintf("Could not load similarity matrix: %s. Using identity matrix...", sm_file)
         }
     } )
@@ -548,7 +553,7 @@ read_scoring_matrix <- function(sm_file) {
     # if matrix is stored in lower tri form, copy to upper
     if (length(list_sm[[1]]) < 20) {
         for (i in 1:19) {
-            for (j in i+1:20) {
+            for (j in (i+1):20) {
                 list_sm[i] = c(list_sm[i], list_sm[[j]][i])
             }
         }
@@ -601,7 +606,7 @@ load_sequence_weights <- function(fname) {
     f = readLines(fname, encoding="UTF-8")
     for (line in f) {
         l = strsplit(line, " ")
-        if (line[[1]] != '#' and nchar(l) == 2) {
+        if (line[[1]][1] != '#' & nchar(l[[1]]) == 2) {
             seq_weights = c(seq_weights, l[[2]])
         }
     }
@@ -611,10 +616,10 @@ load_sequence_weights <- function(fname) {
 
 
 get_column <- function(col_num, alignment) {
-    """Return the col_num column of alignment as a list."""
     col = c()
-    for (seq in alignment) {
-        if (col_num < nchar(seq)) {
+    for (seq in alignment[[1]]) {
+        if (col_num <= nchar(seq)) {
+            seq = strsplit(seq, "")[[1]]
             col = c(col, seq[[col_num]])
         }
     }
@@ -655,6 +660,12 @@ get_distribution_from_file <- function(fname) {
 }
 
 
+
+#########################################################################
+# Utility functions
+#########################################################################
+
+
 replace_element <- function(stringElement, Obj1, Obj2) {
     new_vec = strsplit(stringElement, "")
     for (i in 1:length(new_vec[[1]])) {
@@ -669,12 +680,53 @@ replace_element <- function(stringElement, Obj1, Obj2) {
 }
 
 
+rem_last <- function(stObj) {
+    x = strsplit(stObj, "")[[1]]
+    x = x[-length(x)]
+    strRet = paste(x, collapse="")
+    return(strRet)
+}
+
+
+is.defined <- function(x) !is.null(x)
+
+
+
+trim_seq <- function(stObj, initPos=NULL, endPos=NULL) {
+    newSeqList = strsplit(stObj, "")[[1]]
+    if (is.defined(initPos) == TRUE) {
+        removePosInit = c(1:initPos)
+    }
+    else { removePosInit = c() }
+    if (is.defined(endPos) == TRUE) {
+        removePosEnd = c(endPos:length(newSeqList))
+    }
+    else { removePosEnd = c() }
+    
+    removers = c(removePosInit, removePosEnd)
+    
+    newSeqList = newSeqList[-removers]
+    newSeq = paste(newSeqList, collapse="")
+    
+    return(newSeq)
+    
+}
+
+
+
+search_element <- function(stObj, search_obj) {
+    if ( search_obj %in% strsplit(stObj, "")[[1]] ) {return(TRUE)}
+    else {return(FALSE)}
+}
+
+
+
+
 ###########################################################################################
 # Read fasta files
 ###########################################################################################
 
-read_fasta_alignment=function(filename){
-  """ Read in the alignment stored in the FASTA file, filename. Return two lists: the identifiers and sequences. """
+read_fasta_alignment <- function(filename){
 
   f = readLines(filename,encoding="UTF-8")
 
@@ -683,35 +735,54 @@ read_fasta_alignment=function(filename){
   cur_seq = ''
 
   for (line in f){
-    line = line[:-nchar(line)]}
-  if (length(line) == 0){ next }
-  if (line[1] == ';'){next} 
-  if (line[1] == '>'){
-    names.append(replace_element(line[2:].'\r', ''))}
+    line = rem_last(line)
+    if (nchar(line) == 0){ next }
+    if (line[[1]] == ';'){ next }
+    if (search_element(line[[1]], '>')) {
+        names = c(names, trim_seq(line[[1]], initPos=1)[[1]])
 
-  if (cur_seq != ''){
-    cur_seq = toupper(cur_seq)
-    for (i in 1:length(cur_seq)) {
-      if (cur_seq[i] not in iupac_alphabet){
-        cur_seq = replace_element(cur_seq,cur_seq[i], '-')}}}
-  cur_seq=replace_element(cur_seq,'B','D')
-  cur_seq=replace_element(cur_seq,'Z','Q')
-  cur_seq=replace_element(cur_seq,'X','-')
-  alignment.append(cur_seq)
-  cur_seq = ''
-  else if (line[1] in iupac_alphabet){
-    cur_seq = cur_seq + replace_element(line,'\r', '')}
-
-  # add the last sequence
+        if (cur_seq != '') {
+            cur_seq = toupper(cur_seq)
+            aminos = strsplit(cur_seq, "")[[1]]
+            for (i in 1:length(aminos)) {
+                if (!(aminos[[i]] %in% iupac_alphabet)) {
+                    aminos[i] = "-"
+                }
+            }
+            
+            cur_seq = paste(aminos, collapse="")
+  
+            cur_seq = replace_element(cur_seq,'B','D')
+            cur_seq = replace_element(cur_seq,'Z','Q')
+            cur_seq = replace_element(cur_seq,'X','-')
+            alignment = c(alignment, cur_seq)
+            cur_seq = ''
+        }
+    }
+    
+    else if (strsplit(line, "")[[1]][1] %in% iupac_alphabet){
+        cur_seq = paste(cur_seq, line[[1]], sep="")
+    }
+    
+  }
+  
   cur_seq = toupper(cur_seq)
-  for (i in 1:length(cur_seq)) {
-    if (cur_seq[i] not in iupac_alphabet){
-      cur_seq = replace_element(cur_seq,cur_seq[i], '-')}}
-  cur_seq=replace_element(cur_seq,'B','D')
-  cur_seq=replace_element(cur_seq,'Z','Q')
-  cur_seq=replace_element(cur_seq,'X','-')
-  alignment.append(cur_seq)
-  return (c(names, alignment))
+  aminos = strsplit(cur_seq, "")[[1]]
+  for (i in 1:length(aminos)) {
+    if (!(aminos[[i]] %in% iupac_alphabet)) {
+        aminos[i] = "-"
+    }
+  }
+  
+  cur_seq = paste(aminos, collapse="")
+  cur_seq = replace_element(cur_seq,'B','D')
+  cur_seq = replace_element(cur_seq,'Z','Q')
+  cur_seq = replace_element(cur_seq,'X','-')
+  
+  alignment = c(alignment, cur_seq)
+  return (list(names,alignment))
+  
+}
 
 
 
@@ -727,63 +798,74 @@ execute_conserve <- function(infile_name,
                              outfile_name,
                              window_size=3,
                              win_lam=0.5,
-                             s_matrix_file="matrix/blosum62.bla",
+                             seq_weights=NULL,
+                             s_matrix_file="/blosum62.bla",
                              bg_distribution=blosum_background_distr,
                              scoring_function=js_divergence,
-                             use_seq_weights=True,
+                             use_seq_weights=TRUE,
                              background_name='blosum62',
                              gap_cutoff=0.3,
                              use_gap_penalty=1,
-                             seq_specific_output=0,
-                             normalize_scores=False
+                             seq_specific_output=NULL,
+                             normalize_scores=FALSE
                              ) {
     
     blosum_background_distr = c(0.078, 0.051, 0.041, 0.052, 0.024, 0.034, 0.059, 0.083, 0.025, 0.062, 0.092, 0.056, 0.024, 0.044, 0.043, 0.059, 0.055, 0.014, 0.034, 0.072)
     
     align_file = infile_name
     align_suffix_elements = strsplit(align_file, "\\.")
-    align_suffix = align_suffix_elements[[length(align_suffix_elements)]]
+    align_suffix = align_suffix_elements[[1]][1]
     s_matrix = read_scoring_matrix(s_matrix_file)
     names = c()
     alignment = c()
-    seq_weights = c()
-    ali_out  = read_fasta_alignment(align_file)
-    names = ali_out[1]; alignment = ali_out[2]
     
-    seq_len = nchar(alignment[[1]])
-    for (i in length(alignment)) {
-        if (nchar(alignment[[i]]) != seq_len) {
+    if (is.defined(seq_weights) == TRUE) {
+        seq_weights = c()
+    }
+    
+    ali_out  = read_fasta_alignment(align_file)
+    names = ali_out[[1]]; alignment = ali_out[[2]]
+    
+    seq_len = nchar(alignment[[1]][1])
+    for (i in length(alignment[[1]])) {
+        if (nchar(alignment[[i]][1]) != seq_len) {
             sprintf("ERROR: Sequences of different lengths: %s (%d) != %s (%d).\n", names[[1]], seq_len, names[[i]], nchar(seq))
             quit()
         }
     }
     
-    if (use_seq_weights) {
-        seq_weights = load_sequence_weights(.replace(align_file, align_suffix, '.weights'))
+    if (is.defined(seq_weights) == TRUE) {
+        seq_weights = load_sequence_weights(replace_element(align_file, align_suffix, '.weights'))
         if (seq_weights == c()) {
             seq_weights = calculate_sequence_weights(alignment)
         }
+        if (length(seq_weights) != length(alignment)) { seq_weights = rep(1, length(alignment)) }
     }
+    else { seq_weights = rep(1, length(alignment)) }
     
-    if (length(seq_weights) != length(alignment)) { seq_weights = rep(1, length(alignment)) }
     
     # handle print of output relative to specific sequence
     ref_seq_num = "None"
-    if (seq_specific_output & !(seq_specific_output %in% names)) {
-        sprintf("Sequence %s not found in alignment. Using default output format...\n", seq_specific_output)
-        seq_specific_output = 0
+    if (is.defined(seq_specific_output) == TRUE) {
+        if (!(seq_specific_output %in% names[[1]])) {
+            sprintf("Sequence %s not found in alignment. Using default output format...\n", seq_specific_output)
+            seq_specific_output = 0
+        }
     }
-    else if (seq_specific_output %in% names) {
-        ref_seq_num = which(seq_specific_output %in% names)
+    
+    else if (seq_specific_output %in% names[[1]]) {
+        ref_seq_num = which(seq_specific_output %in% names[[1]])
     }
     
     # calculate scores
     scores = c()
-    for (i in 1:nchar(alignment[[1]])) {
+    
+    
+    for (i in 1:nchar(alignment[[1]][1])) {
         col = get_column(i, alignment)
         if (length(col) == length(alignment)) {
             if (gap_percentage(col) <= gap_cutoff) {
-                scores = c(scores, append(scoring_function(col, s_matrix, bg_distribution, seq_weights, use_gap_penalty)))
+                scores = c(scores, scoring_function(col, s_matrix, bg_distribution, seq_weights, use_gap_penalty))
             }
             else {
                 scores = c(scores, -1000)
