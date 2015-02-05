@@ -407,7 +407,7 @@ sum_of_pairs <- function(col, sim_matrix, bg_distr, seq_weights, gap_penalty=1) 
         for (j in 1:length(i)) {
             if (col[[i]] != '-' and col[[j]] != '-') {
                 max_sum = max_sum + seq_weights[[i]] * seq_weights[[j]]
-                sum = sum + seq_weights[[i]] * seq_weights[[j]] * sim_matrix[[aa_to_index[[col[[i]]]]]][[aa_to_index[[col[[j]]]]]]
+                sum = sum + seq_weights[[i]] * seq_weights[[j]] * sim_matrix[[values(aa_to_index[col[[i]]])]][[values(aa_to_index[col[[j]]])]]
             }
         }
     }
@@ -526,7 +526,7 @@ read_scoring_matrix <- function(sm_file) {
                 first_line = 0
                 if (length(amino_acids) == 0) {
                     for (c in strsplit(line, " ")) {
-                        aa_to_index[tolower(c)] = aa_index
+                        values(aa_to_index[tolower(c)]) = aa_index
                         amino_acids = c(amino_acids, tolower(c))
                         aa_index = aa_index + 1
                     }
@@ -569,7 +569,7 @@ calculate_sequence_weights <- function(msa) {
         col = c()
         for (j in 1:length(msa)) {
             if (msa[[j]][i] != '-') {
-                freq_counts[[aa_to_index[[msa[[j]][i]]]]] = freq_counts[[aa_to_index[[msa[[j]][i]]]]] + 1
+                freq_counts[[values(aa_to_index[msa[[j]][i]])]] = freq_counts[[values(aa_to_index[msa[[j]][i]])]] + 1
             }
         }
         
